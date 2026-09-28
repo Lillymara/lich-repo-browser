@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "online.lich" "\0"
-            VALUE "FileDescription", "lich_repo_browser" "\0"
+            VALUE "CompanyName", "lillymara" "\0"
+            VALUE "FileDescription", "Lich Repo Browser" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "lich_repo_browser" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 online.lich. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 lillymara" "\0"
             VALUE "OriginalFilename", "lich_repo_browser.exe" "\0"
-            VALUE "ProductName", "lich_repo_browser" "\0"
+            VALUE "ProductName", "Lich Repo Browser" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

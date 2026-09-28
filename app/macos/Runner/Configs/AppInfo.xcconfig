@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = lich_repo_browser
+PRODUCT_NAME = Lich Repo Browser
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = online.lich.lichRepoBrowser
+PRODUCT_BUNDLE_IDENTIFIER = com.lillymara.lichRepoBrowser
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 online.lich. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 lillymara. Unofficial; not affiliated with the Lich project.

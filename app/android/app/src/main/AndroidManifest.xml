@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Release builds need this to reach the repositories. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="lich_repo_browser"
+        android:label="Lich Repo Browser"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

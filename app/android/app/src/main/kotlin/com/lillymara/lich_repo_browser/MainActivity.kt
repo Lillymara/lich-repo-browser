@@ -1,4 +1,4 @@
-package online.lich.lich_repo_browser
+package com.lillymara.lich_repo_browser
 
 import io.flutter.embedding.android.FlutterActivity
 

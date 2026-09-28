@@ -40,6 +40,34 @@ dart run bin/spike.dart download bigshot.lic --out /tmp
 dart test
 ```
 
+## Building the apps
+
+Flutter can't cross-compile: Windows builds need Windows, macOS builds need a Mac with Xcode.
+
+**Automatically (GitHub Actions).** `.github/workflows/build.yml` runs the tests, then builds on
+GitHub's Linux, Windows and macOS machines. Each run's downloads are under the run's
+*Artifacts*; pushing a tag such as `v1.0.0` also publishes them as a GitHub Release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**By hand** (Flutter installed on that machine), from `app/`:
+
+| Platform | Command | Output |
+|---|---|---|
+| Linux | `flutter build linux --release` | `build/linux/x64/release/bundle/` (needs `clang cmake ninja-build libgtk-3-dev`) |
+| Windows | `flutter build windows --release` | `build\windows\x64\runner\Release\` (needs Visual Studio with "Desktop development with C++") |
+| macOS | `flutter build macos --release` | `build/macos/Build/Products/Release/Lich Repo Browser.app` (needs Xcode) |
+
+The builds are **unsigned**. Windows SmartScreen may warn ("More info" → "Run anyway"); on macOS,
+right-click the app → Open the first time. Signing needs a code-signing certificate (Windows) or
+an Apple Developer account (macOS, $99/year).
+
+The macOS app is not sandboxed, because it reads and writes an existing Lich folder
+(e.g. `~/Lich5`), which a sandboxed app can't reach. That's fine outside the Mac App Store.
+
 ## Protocol notes (learned from repository.lic / jinx.lic and live testing)
 
 **Lich repository** (`;repository`)
