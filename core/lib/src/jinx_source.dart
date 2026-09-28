@@ -11,6 +11,7 @@ class JinxSource implements RepoSource {
     required this.name,
     required this.baseUrl,
     this.game,
+    this.archive = false,
     HttpClient? client,
   }) : _client = client ?? HttpClient();
 
@@ -20,7 +21,9 @@ class JinxSource implements RepoSource {
             name: 'elanthia-online',
             baseUrl: 'https://extras.repo.elanthia.online'),
         JinxSource(
-            name: 'mirror', baseUrl: 'https://ffnglichrepoarchive.netlify.app'),
+            name: 'mirror',
+            baseUrl: 'https://ffnglichrepoarchive.netlify.app',
+            archive: true),
         JinxSource(
             name: 'mapdb-backup-gs',
             baseUrl: 'https://elanthia-online.github.io/mapdb-backup-gs',
@@ -37,6 +40,11 @@ class JinxSource implements RepoSource {
   /// Game every entry belongs to, when the whole repo is game-specific.
   /// Jinx manifests don't carry a game themselves.
   final String? game;
+
+  /// A frozen snapshot of another repo: every entry carries the snapshot
+  /// date, not when the script really changed, so it shouldn't be treated as
+  /// the newest copy of anything available elsewhere.
+  final bool archive;
   final HttpClient _client;
 
   /// Absolute URL for a manifest path such as [CatalogEntry.path].

@@ -24,21 +24,31 @@ String extractScriptHeader(String source) {
   return out.join('\n').trimRight();
 }
 
-/// Orders version strings newest first, comparing numeric parts numerically
-/// (so 4.12.11 sorts above 4.12.9).
-List<String> sortVersionsDesc(Iterable<String> versions) {
+/// The `version:` value from a script's header, if it has one.
+String? parseScriptVersion(String header) => RegExp(
+      r'^[ \t#]*version\s*:\s*v?([0-9][\w.\-]*)',
+      caseSensitive: false,
+      multiLine: true,
+    ).firstMatch(header)?.group(1);
+
+/// Compares version strings by their numeric parts, so 4.12.11 > 4.12.9.
+/// Returns <0 if [a] is older than [b], 0 if equal, >0 if newer.
+int compareVersions(String a, String b) {
   List<int> parts(String v) => [
         for (final p in v.split(RegExp(r'[^0-9]+')))
           if (p.isNotEmpty) int.parse(p)
       ];
-  int cmp(String a, String b) {
-    final pa = parts(a), pb = parts(b);
-    for (var i = 0; i < pa.length || i < pb.length; i++) {
-      final x = i < pa.length ? pa[i] : 0, y = i < pb.length ? pb[i] : 0;
-      if (x != y) return y.compareTo(x);
-    }
-    return b.compareTo(a);
+  final pa = parts(a), pb = parts(b);
+  for (var i = 0; i < pa.length || i < pb.length; i++) {
+    final x = i < pa.length ? pa[i] : 0, y = i < pb.length ? pb[i] : 0;
+    if (x != y) return x.compareTo(y);
   }
-
-  return versions.toList()..sort(cmp);
+  return 0;
 }
+
+/// Orders version strings newest first (see [compareVersions]).
+List<String> sortVersionsDesc(Iterable<String> versions) => versions.toList()
+  ..sort((a, b) {
+    final c = compareVersions(b, a);
+    return c != 0 ? c : b.compareTo(a);
+  });

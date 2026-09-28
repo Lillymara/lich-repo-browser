@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:repo_core/repo_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'search_query.dart';
 
 enum LoadState { idle, loading, ready, error }
 
@@ -15,6 +19,13 @@ class SourceState {
   LoadState state = LoadState.idle;
   List<CatalogEntry> entries = const [];
   String? error;
+
+  /// When [entries] were fetched from the network.
+  DateTime? fetchedAt;
+
+  /// True while [entries] come from the on-disk cache rather than a fetch
+  /// made this session (e.g. still refreshing, or offline).
+  bool fromCache = false;
 }
 
 /// The same file (by name) as offered by one or more sources.
@@ -79,7 +90,7 @@ enum GameFilter { all, gs, dr }
 
 /// Holds every source's catalog and the current search/filter/sort.
 class CatalogModel extends ChangeNotifier {
-  CatalogModel({List<RepoSource>? sources, this.prefs})
+  CatalogModel({List<RepoSource>? sources, this.prefs, this.cacheDir})
     : sources = [
         for (final s in sources ?? [LichRepoSource(), ...JinxSource.defaults()])
           SourceState(s),
@@ -90,7 +101,11 @@ class CatalogModel extends ChangeNotifier {
   final List<SourceState> sources;
   final SharedPreferences? prefs;
 
+  /// Where each source's last catalog is kept for fast, offline startup.
+  final Directory? cacheDir;
+
   String _query = '';
+  SearchQuery _parsed = SearchQuery.parse('');
   SortBy _sortBy = SortBy.name;
   TypeFilter _typeFilter = TypeFilter.scripts;
   GameFilter _gameFilter = GameFilter.all;
@@ -100,12 +115,18 @@ class CatalogModel extends ChangeNotifier {
   List<ScriptGroup>? _visible;
 
   String get query => _query;
+
+  /// Set when part of the search was ignored (e.g. a missing `)`).
+  String? get queryWarning => _parsed.warning;
   SortBy get sortBy => _sortBy;
   TypeFilter get typeFilter => _typeFilter;
   GameFilter get gameFilter => _gameFilter;
 
   bool get isLoading => sources.any((s) => s.state == LoadState.loading);
   int get totalCount => _groups.length;
+
+  /// Every group from enabled sources, ignoring search and filters.
+  List<ScriptGroup> get allGroups => _groups;
 
   ScriptGroup? get selected =>
       _groups.where((g) => g.name == _selectedName).firstOrNull;
@@ -127,9 +148,14 @@ class CatalogModel extends ChangeNotifier {
       ..error = null;
     notifyListeners();
     try {
-      s.entries = await s.source.fetchCatalog();
-      s.state = LoadState.ready;
+      s
+        ..entries = await s.source.fetchCatalog()
+        ..fetchedAt = DateTime.now()
+        ..fromCache = false
+        ..state = LoadState.ready;
+      unawaited(_writeCache(s));
     } catch (e) {
+      // Keep whatever we had (e.g. from the cache) so the app works offline.
       s
         ..state = LoadState.error
         ..error = '$e';
@@ -137,8 +163,57 @@ class CatalogModel extends ChangeNotifier {
     _regroup();
   }
 
+  File? _cacheFile(SourceState s) => cacheDir == null
+      ? null
+      : File(
+          '${cacheDir!.path}${Platform.pathSeparator}'
+          'catalog-${s.source.id.replaceAll(RegExp(r'[^\w-]'), '_')}.json',
+        );
+
+  /// Fills every source from its cached catalog, if there is one.
+  Future<void> loadCached() async {
+    for (final s in sources) {
+      final f = _cacheFile(s);
+      if (f == null || !await f.exists()) continue;
+      try {
+        final j = jsonDecode(await f.readAsString()) as Map<String, Object?>;
+        s
+          ..entries = [
+            for (final e in j['entries']! as List)
+              CatalogEntry.fromJson(e as Map<String, Object?>),
+          ]
+          ..fetchedAt = DateTime.fromMillisecondsSinceEpoch(
+            j['fetchedAt']! as int,
+          )
+          ..fromCache = true;
+      } catch (_) {
+        // A corrupt cache just means a slower start.
+      }
+    }
+    _regroup();
+  }
+
+  Future<void> _writeCache(SourceState s) async {
+    final f = _cacheFile(s);
+    if (f == null) return;
+    try {
+      await f.parent.create(recursive: true);
+      final tmp = File('${f.path}.tmp');
+      await tmp.writeAsString(
+        jsonEncode({
+          'fetchedAt': s.fetchedAt!.millisecondsSinceEpoch,
+          'entries': [for (final e in s.entries) e.toJson()],
+        }),
+      );
+      await tmp.rename(f.path);
+    } catch (_) {
+      // Caching is best-effort.
+    }
+  }
+
   void setQuery(String q) {
     _query = q;
+    _parsed = SearchQuery.parse(q);
     _invalidate();
   }
 
@@ -200,11 +275,6 @@ class CatalogModel extends ChangeNotifier {
   List<ScriptGroup> get visible => _visible ??= _computeVisible();
 
   List<ScriptGroup> _computeVisible() {
-    final terms = _query
-        .toLowerCase()
-        .split(RegExp(r'\s+'))
-        .where((t) => t.isNotEmpty)
-        .toList();
     bool typeOk(ScriptGroup g) => switch (_typeFilter) {
       TypeFilter.all => true,
       TypeFilter.scripts => g.type == 'script',
@@ -221,7 +291,7 @@ class CatalogModel extends ChangeNotifier {
 
     final out = [
       for (final g in _groups)
-        if (typeOk(g) && gameOk(g) && terms.every(g.searchText.contains)) g,
+        if (typeOk(g) && gameOk(g) && _parsed.matches(g)) g,
     ];
     int byName(ScriptGroup a, ScriptGroup b) =>
         a.name.toLowerCase().compareTo(b.name.toLowerCase());
@@ -247,7 +317,7 @@ class CatalogModel extends ChangeNotifier {
   void _regroup() {
     final byName = <String, List<CatalogEntry>>{};
     for (final s in sources) {
-      if (!s.enabled || s.state != LoadState.ready) continue;
+      if (!s.enabled) continue;
       for (final e in s.entries) {
         byName.putIfAbsent(e.name.toLowerCase(), () => []).add(e);
       }

@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 
 import '../catalog_model.dart';
 import '../downloads.dart';
+import '../search_query.dart';
 import 'detail_view.dart';
 import 'format.dart';
 
 /// Wide screens show list + detail side by side; narrow ones push a page.
-const _wideBreakpoint = 900.0;
+const wideBreakpoint = 900.0;
 
-class BrowsePage extends StatelessWidget {
-  const BrowsePage({super.key, required this.model, required this.downloads});
+/// The Browse tab: filters, the result list and (on wide screens) details.
+class BrowseTab extends StatelessWidget {
+  const BrowseTab({super.key, required this.model, required this.downloads});
 
   final CatalogModel model;
   final Downloads downloads;
@@ -20,79 +22,66 @@ class BrowsePage extends StatelessWidget {
     return ListenableBuilder(
       listenable: model,
       builder: (context, _) {
-        final wide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
+        final wide = MediaQuery.sizeOf(context).width >= wideBreakpoint;
         final list = _ResultList(
           model: model,
           onOpen: (g) {
             model.select(g);
-            if (!wide) {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => Scaffold(
-                    appBar: AppBar(title: Text(g.name)),
-                    body: DetailView(
-                      group: g,
-                      model: model,
-                      downloads: downloads,
-                    ),
-                  ),
-                ),
-              );
-            }
+            if (!wide) openDetailPage(context, g, model, downloads);
           },
         );
         final selected = model.selected;
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Lich Repo Browser'),
-            actions: [
-              IconButton(
-                tooltip: 'Download folder',
-                icon: const Icon(Icons.folder_outlined),
-                onPressed: () => showFolderDialog(context, downloads),
-              ),
-              IconButton(
-                tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh),
-                onPressed: model.isLoading ? null : model.refresh,
-              ),
-            ],
-          ),
-          body: Column(
-            children: [
-              _FilterBar(model: model, wide: wide),
-              SizedBox(
-                height: 2,
-                child: model.isLoading ? const LinearProgressIndicator() : null,
-              ),
-              Expanded(
-                child: wide
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(flex: 5, child: list),
-                          const VerticalDivider(width: 1),
-                          Expanded(
-                            flex: 4,
-                            child: selected == null
-                                ? const _Placeholder()
-                                : DetailView(
-                                    key: ValueKey(selected.name),
-                                    group: selected,
-                                    model: model,
-                                    downloads: downloads,
-                                  ),
-                          ),
-                        ],
-                      )
-                    : list,
-              ),
-            ],
-          ),
+        return Column(
+          children: [
+            _FilterBar(model: model, wide: wide),
+            SizedBox(
+              height: 2,
+              child: model.isLoading ? const LinearProgressIndicator() : null,
+            ),
+            Expanded(
+              child: wide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(flex: 5, child: list),
+                        const VerticalDivider(width: 1),
+                        Expanded(
+                          flex: 4,
+                          child: selected == null
+                              ? const _Placeholder()
+                              : DetailView(
+                                  key: ValueKey(selected.name),
+                                  group: selected,
+                                  model: model,
+                                  downloads: downloads,
+                                ),
+                        ),
+                      ],
+                    )
+                  : list,
+            ),
+          ],
         );
       },
     );
   }
+}
+
+/// Shows [g]'s details as a full page (narrow screens, Installed tab).
+void openDetailPage(
+  BuildContext context,
+  ScriptGroup g,
+  CatalogModel model,
+  Downloads downloads,
+) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: Text(g.name)),
+        body: DetailView(group: g, model: model, downloads: downloads),
+      ),
+    ),
+  );
 }
 
 class _FilterBar extends StatefulWidget {
@@ -117,19 +106,29 @@ class _FilterBarState extends State<_FilterBar> {
   @override
   Widget build(BuildContext context) {
     final m = widget.model;
+    // Keep the box in sync when the query is set elsewhere (tag chips).
+    if (_search.text != m.query) {
+      _search.value = TextEditingValue(
+        text: m.query,
+        selection: TextSelection.collapsed(offset: m.query.length),
+      );
+    }
     final searchField = SizedBox(
-      width: widget.wide ? 320 : double.infinity,
+      width: widget.wide ? 420 : double.infinity,
       child: TextField(
         controller: _search,
         onChanged: m.setQuery,
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.search),
-          hintText: 'Search name, author, tags…',
+          hintText: 'Search… e.g. bounty OR bigshot -mirror',
           isDense: true,
           border: const OutlineInputBorder(),
-          suffixIcon: _search.text.isEmpty
-              ? null
-              : IconButton(
+          helperText: m.queryWarning,
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_search.text.isNotEmpty)
+                IconButton(
                   tooltip: 'Clear',
                   icon: const Icon(Icons.clear),
                   onPressed: () {
@@ -137,6 +136,13 @@ class _FilterBarState extends State<_FilterBar> {
                     m.setQuery('');
                   },
                 ),
+              IconButton(
+                tooltip: 'Search syntax',
+                icon: const Icon(Icons.help_outline),
+                onPressed: () => _showSearchHelp(context),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -248,21 +254,31 @@ class _SourceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = state;
+    final scheme = Theme.of(context).colorScheme;
+    final hasData = s.entries.isNotEmpty;
     final Widget? status = switch (s.state) {
       LoadState.loading => const SizedBox.square(
         dimension: 14,
         child: CircularProgressIndicator(strokeWidth: 2),
       ),
       LoadState.error => Icon(
-        Icons.error_outline,
+        hasData ? Icons.cloud_off : Icons.error_outline,
         size: 18,
-        color: Theme.of(context).colorScheme.error,
+        color: hasData ? scheme.tertiary : scheme.error,
       ),
       _ => null,
     };
-    final count = s.state == LoadState.ready ? ' (${s.entries.length})' : '';
+    final count = hasData ? ' (${s.entries.length})' : '';
+    final asOf = s.fetchedAt == null ? '' : ' from ${formatDate(s.fetchedAt)}';
+    final tooltip = switch (s.state) {
+      LoadState.error when hasData =>
+        'Offline: showing the saved list$asOf\n${s.error}',
+      LoadState.error => s.error!,
+      LoadState.loading when hasData => 'Refreshing (showing saved list$asOf)',
+      _ => s.source.displayName,
+    };
     return Tooltip(
-      message: s.error ?? s.source.displayName,
+      message: tooltip,
       child: FilterChip(
         avatar: status,
         label: Text('${sourceLabel(s.source.id)}$count'),
@@ -413,24 +429,40 @@ class _Placeholder extends StatelessWidget {
   );
 }
 
-/// Shows the current download folder and lets the user pick another.
-Future<void> showFolderDialog(BuildContext context, Downloads downloads) async {
+/// Shows the current Lich folder and lets the user pick another.
+Future<void> showFolderDialog(
+  BuildContext context,
+  Downloads downloads, {
+  VoidCallback? onChanged,
+}) async {
   final current = await downloads.folder();
   if (!context.mounted) return;
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Download folder'),
+      title: Text(Downloads.isMobile ? 'Download folder' : 'Lich folder'),
       content: SelectableText(
-        current ??
-            'No Lich scripts folder found. Choose where downloads should go.',
+        current == null
+            ? 'No Lich install found. Choose your Lich folder (the one '
+                  'containing scripts/ and data/).'
+            : Downloads.isMobile
+            ? 'Downloads are saved in the app, then offered to share or '
+                  'save elsewhere.\n\n${current.root}'
+            : '${current.root}\n\nScripts go to scripts/, data files to '
+                  'data/, map images to maps/.',
       ),
       actions: [
         if (!Downloads.isMobile)
           TextButton(
             onPressed: () async {
-              final picked = await pickFolder(downloads, initial: current);
-              if (picked != null && ctx.mounted) Navigator.pop(ctx);
+              final picked = await pickFolder(
+                downloads,
+                initial: current?.root,
+              );
+              if (picked != null) {
+                onChanged?.call();
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
             },
             child: const Text('Change…'),
           ),
@@ -443,11 +475,75 @@ Future<void> showFolderDialog(BuildContext context, Downloads downloads) async {
   );
 }
 
+/// Asks for the Lich folder; picking its scripts/ folder is accepted too.
 Future<String?> pickFolder(Downloads downloads, {String? initial}) async {
   final picked = await getDirectoryPath(
     initialDirectory: initial,
     confirmButtonText: 'Use this folder',
   );
-  if (picked != null) await downloads.setFolder(picked);
+  if (picked != null) await downloads.setRoot(picked);
   return picked;
+}
+
+void _showSearchHelp(BuildContext context) {
+  final mono = Theme.of(context).textTheme.bodyMedium
+      ?.copyWith(fontFamily: 'monospace');
+  Widget row(String code, String what) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 210, child: SelectableText(code, style: mono)),
+        Expanded(child: Text(what)),
+      ],
+    ),
+  );
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Search syntax'),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              row('bigshot hunting', 'both words (AND is implied)'),
+              row('bounty OR bigshot', 'either (also |)'),
+              row('NOT mirror  -mirror', 'exclude (also !)'),
+              row('(bounty OR gems) -dr', 'group with parentheses'),
+              row('"boost bounty"', 'exact phrase'),
+              row('bigshot AND hunting', 'explicit AND (also &)'),
+              row(
+                'name:big*  name:*.xml',
+                '* and ? wildcards match the '
+                    'whole field',
+              ),
+              const Divider(),
+              Text('Fields', style: Theme.of(ctx).textTheme.titleSmall),
+              for (final e in SearchQuery.fields.entries)
+                row('${e.key}:', e.value),
+              const Divider(),
+              row('author:tysong tag:bounty', ''),
+              row('downloads:>500 rating:>=8', ''),
+              row('age:<90d -source:mirror', 'updated in the last 90 days'),
+              row('updated:>=2026-01-01', ''),
+              const SizedBox(height: 8),
+              const Text(
+                'Operators must be upper case, so and/or/not '
+                'search as ordinary words. Without a field, words match '
+                'the name, author, tags and comments.',
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
 }

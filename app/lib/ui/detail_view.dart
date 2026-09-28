@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:repo_core/repo_core.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../catalog_model.dart';
 import '../downloads.dart';
@@ -23,7 +24,7 @@ class DetailView extends StatefulWidget {
 }
 
 class _DetailViewState extends State<DetailView> {
-  String? _folder;
+  LichFolder? _folder;
   final _status = <CatalogEntry, InstallStatus>{};
   final _busy = <CatalogEntry>{};
 
@@ -62,16 +63,29 @@ class _DetailViewState extends State<DetailView> {
   Future<void> _download(CatalogEntry e, {String? version}) async {
     final messenger = ScaffoldMessenger.of(context);
     var folder = _folder ?? await widget.downloads.folder();
-    folder ??= await pickFolder(widget.downloads);
+    if (folder == null && await pickFolder(widget.downloads) != null) {
+      folder = await widget.downloads.folder();
+    }
     if (folder == null || !mounted) return;
 
-    if (await widget.downloads.fileFor(folder, e).exists()) {
+    final target = folder.fileFor(e);
+    String? warning;
+    if (e.type == 'engine') {
+      warning =
+          '${e.name} is part of Lich itself and goes in\n'
+          '${folder.dirFor(e)}\n\nOnly continue if you know you need it.';
+    } else if (!folder.flat && await target.exists()) {
+      warning =
+          'A copy already exists in\n${target.parent.path}\n\n'
+          'The current file will be backed up first.';
+    }
+    if (warning != null) {
       if (!mounted) return;
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text('Replace ${e.name}?'),
-          content: Text('A copy already exists in\n$folder'),
+          content: Text(warning!),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -89,13 +103,25 @@ class _DetailViewState extends State<DetailView> {
 
     setState(() => _busy.add(e));
     try {
-      final f = await widget.downloads.save(
+      final r = await widget.downloads.save(
         folder,
         widget.model.stateFor(e.sourceId).source,
         e,
         version: version,
       );
-      messenger.showSnackBar(SnackBar(content: Text('Saved ${f.path}')));
+      if (folder.flat && mounted) {
+        await shareFile(context, r.file.path);
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              r.backup == null
+                  ? 'Saved ${r.file.path}'
+                  : 'Saved ${r.file.path}\nOld copy: ${r.backup}',
+            ),
+          ),
+        );
+      }
     } catch (err) {
       messenger.showSnackBar(SnackBar(content: Text('Download failed: $err')));
     } finally {
@@ -153,8 +179,8 @@ class _DetailViewState extends State<DetailView> {
                 ActionChip(
                   label: Text(t),
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Search for "$t"',
-                  onPressed: () => widget.model.setQuery(t),
+                  tooltip: 'Search for tag "$t"',
+                  onPressed: () => widget.model.setQuery('tag:"$t"'),
                 ),
             ],
           ),
@@ -166,7 +192,12 @@ class _DetailViewState extends State<DetailView> {
         if (_folder != null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: Text('Downloads go to $_folder', style: text.bodySmall),
+            child: Text(
+              _folder!.flat
+                  ? 'Downloads are saved in the app and offered to share.'
+                  : 'Downloads go to ${_folder!.dirFor(_describer)}',
+              style: text.bodySmall,
+            ),
           ),
         if (g.comments != null) ...[
           const SizedBox(height: 16),
@@ -295,4 +326,19 @@ class _DetailViewState extends State<DetailView> {
       },
     );
   }
+}
+
+/// Opens the system share sheet for [path] (phones: save to Files, send to
+/// another app, etc.).
+Future<void> shareFile(BuildContext context, String path) async {
+  final box = context.findRenderObject() as RenderBox?;
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [XFile(path)],
+      // Needed on iPad, where the sheet is a popover.
+      sharePositionOrigin: box == null
+          ? null
+          : box.localToGlobal(Offset.zero) & box.size,
+    ),
+  );
 }

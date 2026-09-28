@@ -52,6 +52,46 @@ class CatalogEntry {
   /// Source-relative path to the script header (Jinx only).
   final String? headerPath;
 
+  Map<String, Object?> toJson() => {
+        'sourceId': sourceId,
+        'name': name,
+        'type': type,
+        'game': game,
+        'author': author,
+        'version': version,
+        'tags': tags,
+        'lastUpdated': lastUpdated?.millisecondsSinceEpoch,
+        'size': size,
+        'downloads': downloads,
+        'ratingTotal': ratingTotal,
+        'ratingCount': ratingCount,
+        'comments': comments,
+        'sha1Hex': sha1Hex,
+        'path': path,
+        'headerPath': headerPath,
+      }..removeWhere((_, v) => v == null);
+
+  factory CatalogEntry.fromJson(Map<String, Object?> j) => CatalogEntry(
+        sourceId: j['sourceId']! as String,
+        name: j['name']! as String,
+        type: j['type'] as String? ?? 'script',
+        game: j['game'] as String?,
+        author: j['author'] as String?,
+        version: j['version'] as String?,
+        tags: [for (final t in j['tags'] as List? ?? const []) '$t'],
+        lastUpdated: j['lastUpdated'] == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(j['lastUpdated']! as int),
+        size: j['size'] as int?,
+        downloads: j['downloads'] as int?,
+        ratingTotal: j['ratingTotal'] as int?,
+        ratingCount: j['ratingCount'] as int?,
+        comments: j['comments'] as String?,
+        sha1Hex: j['sha1Hex'] as String?,
+        path: j['path'] as String?,
+        headerPath: j['headerPath'] as String?,
+      );
+
   double? get rating =>
       (ratingCount ?? 0) > 0 ? ratingTotal! / ratingCount! : null;
 

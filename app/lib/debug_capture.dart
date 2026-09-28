@@ -15,11 +15,13 @@ void registerDebugCapture() {
     final view = WidgetsBinding.instance.renderViews.first;
     final layer = view.debugLayer! as OffsetLayer;
     final ratio = view.flutterView.devicePixelRatio;
-    final image = await layer.toImage(Offset.zero & view.size,
-        pixelRatio: ratio);
+    final image = await layer.toImage(
+      Offset.zero & view.size,
+      pixelRatio: ratio,
+    );
     final png = await image.toByteData(format: ui.ImageByteFormat.png);
-    return developer.ServiceExtensionResponse.result(jsonEncode({
-      'png': base64.encode(png!.buffer.asUint8List()),
-    }));
+    return developer.ServiceExtensionResponse.result(
+      jsonEncode({'png': base64.encode(png!.buffer.asUint8List())}),
+    );
   });
 }

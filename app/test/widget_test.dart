@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lich_repo_browser/catalog_model.dart';
 import 'package:lich_repo_browser/downloads.dart';
 import 'package:lich_repo_browser/main.dart';
+import 'package:lich_repo_browser/updates_model.dart';
 import 'package:repo_core/repo_core.dart';
 
 /// In-memory source so tests never touch the network.
@@ -141,8 +142,13 @@ void main() {
     addTearDown(tester.view.reset);
 
     final m = fakeModel();
+    final downloads = Downloads(null, autodetect: false);
     await tester.pumpWidget(
-      RepoBrowserApp(model: m, downloads: Downloads(null, autodetect: false)),
+      RepoBrowserApp(
+        model: m,
+        downloads: downloads,
+        updates: UpdatesModel(m, downloads),
+      ),
     );
     await m.refresh();
     await tester.pumpAndSettle();
@@ -162,5 +168,22 @@ void main() {
     await tester.enterText(find.byType(TextField), 'nothing-matches');
     await tester.pumpAndSettle();
     expect(find.text('No matches.'), findsOneWidget);
+
+    // Boolean search reaches the list.
+    await tester.enterText(find.byType(TextField), 'bigshot OR drscript');
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('drscript.lic', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('anyscript.lic', findRichText: true),
+      findsNothing,
+    );
+
+    // Installed tab with no Lich folder offers to choose one.
+    await tester.tap(find.text('Installed'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose Lich folder…'), findsOneWidget);
   });
 }

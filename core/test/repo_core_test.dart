@@ -76,6 +76,20 @@ void main() {
       expect(e[1].sha1Hex, isNull);
     });
 
+    test('entries round-trip through JSON', () {
+      final e = CatalogEntry(
+        sourceId: 'lich',
+        name: 'a.lic',
+        game: 'gs',
+        tags: ['x'],
+        lastUpdated: DateTime.fromMillisecondsSinceEpoch(5000),
+        downloads: 3,
+      );
+      final back = CatalogEntry.fromJson(
+          jsonDecode(jsonEncode(e.toJson())) as Map<String, Object?>);
+      expect(back.toJson(), e.toJson());
+    });
+
     test('rejects a manifest without "available"', () {
       expect(() => JinxSource.parseManifest('x', '{}'),
           throwsA(isA<RepoException>()));
@@ -96,6 +110,19 @@ void main() {
 
     test('returns empty when there is no header', () {
       expect(extractScriptHeader('puts 1'), '');
+    });
+
+    test('parses version from header', () {
+      expect(parseScriptVersion('  author: x\n       version: 5.16.5\n'),
+          '5.16.5');
+      expect(parseScriptVersion('# Version: v2.1-beta'), '2.1-beta');
+      expect(parseScriptVersion('no version here'), isNull);
+    });
+
+    test('compares versions', () {
+      expect(compareVersions('4.12.9', '4.12.11'), lessThan(0));
+      expect(compareVersions('2.0', '2'), 0);
+      expect(compareVersions('10', '9'), greaterThan(0));
     });
 
     test('sorts versions numerically, newest first', () {
