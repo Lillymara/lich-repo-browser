@@ -19,6 +19,14 @@ void main() {
       );
     });
 
+    test('rejects ratings outside 1-10 before connecting', () {
+      final e = CatalogEntry(sourceId: 'lich', name: 'x.lic', game: 'gs');
+      // A bogus host proves no connection is attempted.
+      final s = LichRepoSource(host: 'invalid.invalid');
+      expect(() => s.rate(e, 0), throwsRangeError);
+      expect(() => s.rate(e, 11), throwsRangeError);
+    });
+
     test('parses list and merges comments', () {
       const list = 'file\tgame\tsize\tlast update\tauthor\tdownloads\t'
           'rating total\trating count\ttags\n'

@@ -39,6 +39,23 @@ class SearchQuery {
     'size': 'bytes; k/m suffixes, e.g. <50k',
     'updated': 'date, e.g. >2025-06-01',
     'age': 'time since update, e.g. <30d, >2y (d/w/m/y)',
+    'is': 'favorite, new, updated, installed, outdated',
+  };
+
+  /// Accepted spellings for `is:` values.
+  static const _flagAliases = {
+    'fav': 'favorite',
+    'favorite': 'favorite',
+    'favourite': 'favorite',
+    'star': 'favorite',
+    'starred': 'favorite',
+    'new': 'new',
+    'updated': 'updated',
+    'changed': 'updated',
+    'installed': 'installed',
+    'outdated': 'outdated',
+    'update': 'outdated',
+    'updates': 'outdated',
   };
 
   static const _aliases = {
@@ -239,6 +256,15 @@ class _Parser {
           return null;
         }
         return _NumTerm(field!, cmp);
+      case 'is':
+        final flag = SearchQuery._flagAliases[value.toLowerCase()];
+        if (flag == null) {
+          warning ??=
+              'Unknown is:$value (try favorite, new, updated, '
+              'installed, outdated)';
+          return null;
+        }
+        return _FlagTerm(flag);
       case 'updated' || 'age':
         final cmp = field == 'age' ? _ageCmp(value) : _dateCmp(value);
         if (cmp == null) {
@@ -355,6 +381,13 @@ class _TextTerm extends _Node {
     }
     return false;
   }
+}
+
+class _FlagTerm extends _Node {
+  _FlagTerm(this.flag);
+  final String flag;
+  @override
+  bool eval(ScriptGroup g) => g.flags.contains(flag);
 }
 
 class _NumCmp {

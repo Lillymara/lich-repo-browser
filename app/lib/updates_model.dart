@@ -167,6 +167,7 @@ class UpdatesModel extends ChangeNotifier {
       folder = await downloads.folder();
       items = folder == null ? const [] : await _scan(folder!);
       scannedAt = DateTime.now();
+      _publishInstalled();
     } finally {
       scanning = false;
       progress = null;
@@ -236,6 +237,11 @@ class UpdatesModel extends ChangeNotifier {
     return out;
   }
 
+  /// Lets Browse mark and filter installed / outdated files.
+  void _publishInstalled() => catalog.setInstalled({
+    for (final i in items) i.group.name.toLowerCase(): i.canUpdate,
+  });
+
   /// Installs [item.latest], replacing the local copy (backed up first).
   Future<({File file, String? backup})> update(InstalledItem item) async {
     final f = folder ?? await downloads.folder();
@@ -268,6 +274,7 @@ class UpdatesModel extends ChangeNotifier {
       ),
     );
     items = [for (final i in items) identical(i, item) ? updated : i];
+    _publishInstalled();
     notifyListeners();
   }
 }

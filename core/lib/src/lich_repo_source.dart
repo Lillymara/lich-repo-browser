@@ -96,10 +96,32 @@ class LichRepoSource implements RepoSource {
     return res.body;
   }
 
+  /// Submits a 1–10 rating for [entry], as `;repository rate` does. The
+  /// new average shows up in the next catalog fetch.
+  Future<void> rate(CatalogEntry entry, int rating) async {
+    if (rating < 1 || rating > 10) {
+      throw RangeError.range(rating, 1, 10, 'rating');
+    }
+    final res = await _request({
+      'action': 'rate',
+      'file': entry.name,
+      'game': entry.game ?? '',
+      'rating': '$rating',
+    }, expectBody: false);
+    if (res.header['success'] == null) {
+      throw RepoException('unrecognized response: ${res.header}');
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Connection
 
-  Future<_Response> _request(Map<String, String> fields) async {
+  /// Sends one request. Most responses carry `size` bytes of body; a few
+  /// (like `rate`) are just the header line.
+  Future<_Response> _request(
+    Map<String, String> fields, {
+    bool expectBody = true,
+  }) async {
     final socket = await _connect();
     try {
       final reader = _SocketReader(socket);
@@ -110,6 +132,7 @@ class LichRepoSource implements RepoSource {
       if (header['error'] != null) {
         throw RepoException('server says: ${header['error']}');
       }
+      if (!expectBody) return _Response(header, Uint8List(0));
       final size = int.tryParse(header['size'] ?? '');
       if (size == null) {
         throw RepoException('unrecognized response: $header');

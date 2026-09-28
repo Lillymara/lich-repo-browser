@@ -6,6 +6,7 @@ import '../downloads.dart';
 import '../search_query.dart';
 import 'detail_view.dart';
 import 'format.dart';
+import 'map_gallery.dart';
 
 /// Wide screens show list + detail side by side; narrow ones push a page.
 const wideBreakpoint = 900.0;
@@ -23,6 +24,20 @@ class BrowseTab extends StatelessWidget {
       listenable: model,
       builder: (context, _) {
         final wide = MediaQuery.sizeOf(context).width >= wideBreakpoint;
+        if (model.typeFilter == TypeFilter.maps) {
+          return Column(
+            children: [
+              _FilterBar(model: model, wide: wide),
+              SizedBox(
+                height: 2,
+                child: model.isLoading ? const LinearProgressIndicator() : null,
+              ),
+              Expanded(
+                child: MapGallery(model: model, downloads: downloads),
+              ),
+            ],
+          );
+        }
         final list = _ResultList(
           model: model,
           onOpen: (g) {
@@ -179,6 +194,28 @@ class _FilterBarState extends State<_FilterBar> {
                 },
                 onChanged: m.setTypeFilter,
               ),
+              _Menu<ShowOnly>(
+                icon: Icons.filter_list,
+                value: m.showOnly,
+                labels: {
+                  ShowOnly.all: 'Show all',
+                  ShowOnly.favorites: 'Favorites (${m.countFlag('favorite')})',
+                  ShowOnly.fresh: m.since == null
+                      ? 'New & updated (after your next visit)'
+                      : 'New & updated since ${formatDate(m.since)} '
+                            '(${m.countFlag('new') + m.countFlag('updated')})',
+                  ShowOnly.installed: 'Installed (${m.countFlag('installed')})',
+                  ShowOnly.outdated:
+                      'Updates available (${m.countFlag('outdated')})',
+                },
+                onChanged: m.setShowOnly,
+              ),
+              if (m.showOnly == ShowOnly.fresh && m.since != null)
+                TextButton.icon(
+                  onPressed: m.markAllSeen,
+                  icon: const Icon(Icons.done_all),
+                  label: const Text('Mark all as seen'),
+                ),
               _Menu<SortBy>(
                 icon: Icons.sort,
                 value: m.sortBy,
@@ -324,6 +361,7 @@ class _ResultList extends StatelessWidget {
         final g = items[i];
         return _ResultTile(
           group: g,
+          model: model,
           selected: g.name == selected,
           onTap: () => onOpen(g),
         );
@@ -335,11 +373,13 @@ class _ResultList extends StatelessWidget {
 class _ResultTile extends StatelessWidget {
   const _ResultTile({
     required this.group,
+    required this.model,
     required this.selected,
     required this.onTap,
   });
 
   final ScriptGroup group;
+  final CatalogModel model;
   final bool selected;
   final VoidCallback onTap;
 
@@ -358,15 +398,39 @@ class _ResultTile extends StatelessWidget {
       if (g.downloads != null) '⇩ ${formatCount(g.downloads!)}',
     ].join('   ');
 
+    final scheme = theme.colorScheme;
+    final flags = g.flags;
+    final fav = g.isFavorite;
     return ListTile(
       selected: selected,
       onTap: onTap,
+      contentPadding: const EdgeInsetsDirectional.only(start: 4, end: 16),
+      leading: IconButton(
+        tooltip: fav ? 'Remove from favorites' : 'Add to favorites',
+        icon: Icon(
+          fav ? Icons.star : Icons.star_border,
+          color: fav ? Colors.amber.shade600 : scheme.outline,
+        ),
+        onPressed: () => model.toggleFavorite(g),
+      ),
       title: Text.rich(
         TextSpan(
           children: [
             TextSpan(text: g.name),
             if (g.version != null)
               TextSpan(text: '  v${g.version}', style: muted),
+            if (flags.contains('new'))
+              _badge(' NEW ', scheme.primary, scheme.onPrimary),
+            if (flags.contains('updated'))
+              _badge(' UPDATED ', scheme.secondary, scheme.onSecondary),
+            if (flags.contains('outdated'))
+              _badge(' UPDATE AVAILABLE ', scheme.tertiary, scheme.onTertiary)
+            else if (flags.contains('installed'))
+              _badge(
+                ' INSTALLED ',
+                scheme.surfaceContainerHighest,
+                scheme.onSurfaceVariant,
+              ),
           ],
         ),
       ),
@@ -389,6 +453,21 @@ class _ResultTile extends StatelessWidget {
     );
   }
 }
+
+InlineSpan _badge(String text, Color bg, Color fg) => WidgetSpan(
+  alignment: PlaceholderAlignment.middle,
+  child: Container(
+    margin: const EdgeInsets.only(left: 6),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.w600),
+    ),
+  ),
+);
 
 class SourceBadge extends StatelessWidget {
   const SourceBadge({super.key, required this.sourceId});

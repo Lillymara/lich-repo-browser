@@ -5,6 +5,7 @@ import '../downloads.dart';
 import '../updates_model.dart';
 import 'browse_page.dart';
 import 'installed_tab.dart';
+import 'sources_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -55,6 +56,11 @@ class _HomePageState extends State<HomePage> {
         appBar: AppBar(
           title: const Text('Lich Repo Browser'),
           actions: [
+            IconButton(
+              tooltip: 'Sources',
+              icon: const Icon(Icons.dns_outlined),
+              onPressed: () => showSourcesDialog(context, widget.catalog),
+            ),
             IconButton(
               tooltip: Downloads.isMobile ? 'Download folder' : 'Lich folder',
               icon: const Icon(Icons.folder_outlined),

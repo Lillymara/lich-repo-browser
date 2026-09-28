@@ -168,6 +168,20 @@ void main() {
     expect(search('age:>3y'), ['sbounty-bigshot.lic', 'drhunt.lic']);
   });
 
+  test('is: flags', () {
+    scripts[0].flags.addAll({'favorite', 'installed', 'outdated'});
+    scripts[1].flags.add('new');
+    addTearDown(() {
+      for (final g in scripts) {
+        g.flags.clear();
+      }
+    });
+    expect(search('is:fav'), ['bigshot.lic']);
+    expect(search('is:new OR is:outdated'), ['bigshot.lic', 'mybounty.lic']);
+    expect(search('is:installed -is:update'), isEmpty);
+    expect(SearchQuery.parse('is:bogus').warning, contains('is:bogus'));
+  });
+
   test('combined', () {
     expect(
       search('(tag:bounty OR tag:hunting) downloads:>200 -source:mirror'),

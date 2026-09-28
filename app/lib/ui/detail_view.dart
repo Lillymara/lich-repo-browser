@@ -61,69 +61,15 @@ class _DetailViewState extends State<DetailView> {
   }
 
   Future<void> _download(CatalogEntry e, {String? version}) async {
-    final messenger = ScaffoldMessenger.of(context);
-    var folder = _folder ?? await widget.downloads.folder();
-    if (folder == null && await pickFolder(widget.downloads) != null) {
-      folder = await widget.downloads.folder();
-    }
-    if (folder == null || !mounted) return;
-
-    final target = folder.fileFor(e);
-    String? warning;
-    if (e.type == 'engine') {
-      warning =
-          '${e.name} is part of Lich itself and goes in\n'
-          '${folder.dirFor(e)}\n\nOnly continue if you know you need it.';
-    } else if (!folder.flat && await target.exists()) {
-      warning =
-          'A copy already exists in\n${target.parent.path}\n\n'
-          'The current file will be backed up first.';
-    }
-    if (warning != null) {
-      if (!mounted) return;
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text('Replace ${e.name}?'),
-          content: Text(warning!),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Replace'),
-            ),
-          ],
-        ),
-      );
-      if (ok != true) return;
-    }
-
-    setState(() => _busy.add(e));
     try {
-      final r = await widget.downloads.save(
-        folder,
-        widget.model.stateFor(e.sourceId).source,
-        e,
+      await downloadEntry(
+        context,
+        model: widget.model,
+        downloads: widget.downloads,
+        entry: e,
         version: version,
+        onStart: () => setState(() => _busy.add(e)),
       );
-      if (folder.flat && mounted) {
-        await shareFile(context, r.file.path);
-      } else {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              r.backup == null
-                  ? 'Saved ${r.file.path}'
-                  : 'Saved ${r.file.path}\nOld copy: ${r.backup}',
-            ),
-          ),
-        );
-      }
-    } catch (err) {
-      messenger.showSnackBar(SnackBar(content: Text('Download failed: $err')));
     } finally {
       if (mounted) setState(() => _busy.remove(e));
       await _refreshStatus();
@@ -153,7 +99,12 @@ class _DetailViewState extends State<DetailView> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        SelectableText(g.name, style: text.headlineSmall),
+        Row(
+          children: [
+            Expanded(child: SelectableText(g.name, style: text.headlineSmall)),
+            FavoriteButton(group: g, model: widget.model),
+          ],
+        ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 24,
@@ -189,6 +140,9 @@ class _DetailViewState extends State<DetailView> {
         Text('Available from', style: text.titleSmall),
         const SizedBox(height: 4),
         for (final e in g.entries) _sourceRow(e),
+        if (g.entries.where((e) => e.sourceId == 'lich').firstOrNull
+            case final lich?)
+          _RatingRow(entry: lich, model: widget.model),
         if (_folder != null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
@@ -341,4 +295,177 @@ Future<void> shareFile(BuildContext context, String path) async {
           : box.localToGlobal(Offset.zero) & box.size,
     ),
   );
+}
+
+/// Downloads [entry] into the Lich folder (asking for it if unset), after
+/// confirming replacements and engine files. On phones the saved file is
+/// offered to the share sheet. [onStart] runs once the download begins.
+Future<void> downloadEntry(
+  BuildContext context, {
+  required CatalogModel model,
+  required Downloads downloads,
+  required CatalogEntry entry,
+  String? version,
+  VoidCallback? onStart,
+}) async {
+  final e = entry;
+  final messenger = ScaffoldMessenger.of(context);
+  var folder = await downloads.folder();
+  if (folder == null && await pickFolder(downloads) != null) {
+    folder = await downloads.folder();
+  }
+  if (folder == null || !context.mounted) return;
+
+  final target = folder.fileFor(e);
+  final exists = !folder.flat && await target.exists();
+  String? warning;
+  if (e.type == 'engine') {
+    warning =
+        '${e.name} is part of Lich itself and goes in\n'
+        '${folder.dirFor(e)}\n\nOnly continue if you know you need it.';
+  } else if (exists) {
+    warning =
+        'A copy already exists in\n${target.parent.path}\n\n'
+        'The current file will be backed up first.';
+  }
+  if (warning != null) {
+    if (!context.mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(exists ? 'Replace ${e.name}?' : 'Download ${e.name}?'),
+        content: Text(warning!),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(exists ? 'Replace' : 'Download'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+  }
+
+  onStart?.call();
+  try {
+    final r = await downloads.save(
+      folder,
+      model.stateFor(e.sourceId).source,
+      e,
+      version: version,
+    );
+    if (folder.flat && context.mounted) {
+      await shareFile(context, r.file.path);
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            r.backup == null
+                ? 'Saved ${r.file.path}'
+                : 'Saved ${r.file.path}\nOld copy: ${r.backup}',
+          ),
+        ),
+      );
+    }
+  } catch (err) {
+    messenger.showSnackBar(SnackBar(content: Text('Download failed: $err')));
+  }
+}
+
+/// Star toggle for favorites; listens to the model so it stays in sync.
+class FavoriteButton extends StatelessWidget {
+  const FavoriteButton({super.key, required this.group, required this.model});
+
+  final ScriptGroup group;
+  final CatalogModel model;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: model,
+    builder: (context, _) {
+      final fav = group.isFavorite;
+      return IconButton(
+        tooltip: fav ? 'Remove from favorites' : 'Add to favorites',
+        icon: Icon(
+          fav ? Icons.star : Icons.star_border,
+          color: fav ? Colors.amber.shade600 : null,
+        ),
+        onPressed: () => model.toggleFavorite(group),
+      );
+    },
+  );
+}
+
+/// Lets the user rate a Lich repo script 1–10 (like `;repository rate`).
+class _RatingRow extends StatefulWidget {
+  const _RatingRow({required this.entry, required this.model});
+
+  final CatalogEntry entry;
+  final CatalogModel model;
+
+  @override
+  State<_RatingRow> createState() => _RatingRowState();
+}
+
+class _RatingRowState extends State<_RatingRow> {
+  late double _value = (widget.model.myRating(widget.entry) ?? 8).toDouble();
+  bool _sending = false;
+
+  Future<void> _submit() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _sending = true);
+    try {
+      await widget.model.rate(widget.entry, _value.round());
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Thanks! You rated ${widget.entry.name} ${_value.round()}/10. '
+            'The average updates on the next refresh.',
+          ),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Rating failed: $e')));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final mine = widget.model.myRating(widget.entry);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        children: [
+          Text(
+            mine == null ? 'Rate on the Lich repository' : 'You rated $mine/10',
+            style: text.bodyMedium,
+          ),
+          SizedBox(
+            width: 220,
+            child: Slider(
+              value: _value,
+              min: 1,
+              max: 10,
+              divisions: 9,
+              label: '${_value.round()}',
+              onChanged: _sending ? null : (v) => setState(() => _value = v),
+            ),
+          ),
+          FilledButton.tonal(
+            onPressed: _sending ? null : _submit,
+            child: Text(_sending ? 'Sending…' : 'Rate ${_value.round()}'),
+          ),
+        ],
+      ),
+    );
+  }
 }
