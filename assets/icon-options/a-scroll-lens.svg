@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5B3FA8"/>
+      <stop offset="1" stop-color="#231A4F"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF4D6"/>
+      <stop offset="1" stop-color="#EAD5A2"/>
+    </linearGradient>
+    <linearGradient id="roll" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C9A866"/>
+      <stop offset="0.5" stop-color="#F4E2B4"/>
+      <stop offset="1" stop-color="#B8934E"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFE08A"/>
+      <stop offset="1" stop-color="#D08F1C"/>
+    </linearGradient>
+    <radialGradient id="lens" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.75"/>
+      <stop offset="0.5" stop-color="#BFE3FF" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#6FA8DC" stop-opacity="0.25"/>
+    </radialGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="216" fill="url(#bg)"/>
+  <!-- scroll -->
+  <rect x="250" y="190" width="440" height="600" rx="24" fill="url(#paper)"/>
+  <rect x="215" y="160" width="510" height="70" rx="35" fill="url(#roll)"/>
+  <rect x="215" y="750" width="510" height="70" rx="35" fill="url(#roll)"/>
+  <g stroke="#9C7A45" stroke-width="22" stroke-linecap="round">
+    <line x1="320" y1="310" x2="620" y2="310"/>
+    <line x1="320" y1="385" x2="580" y2="385"/>
+    <line x1="320" y1="460" x2="610" y2="460"/>
+    <line x1="320" y1="535" x2="500" y2="535"/>
+    <line x1="320" y1="610" x2="560" y2="610"/>
+  </g>
+  <!-- magnifier -->
+  <line x1="720" y1="700" x2="850" y2="830" stroke="#2A1B0A" stroke-width="88" stroke-linecap="round" opacity="0.25"/>
+  <line x1="710" y1="690" x2="840" y2="820" stroke="url(#gold)" stroke-width="80" stroke-linecap="round"/>
+  <circle cx="600" cy="580" r="170" fill="url(#lens)"/>
+  <circle cx="600" cy="580" r="170" fill="none" stroke="url(#gold)" stroke-width="44"/>
+</svg>

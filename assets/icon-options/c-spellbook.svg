@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8E1F3A"/>
+      <stop offset="1" stop-color="#3A0A1C"/>
+    </linearGradient>
+    <linearGradient id="pageL" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#D9C39A"/>
+      <stop offset="0.25" stop-color="#FFF3D9"/>
+      <stop offset="1" stop-color="#F3E1BC"/>
+    </linearGradient>
+    <linearGradient id="pageR" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D9C39A"/>
+      <stop offset="0.25" stop-color="#FFF3D9"/>
+      <stop offset="1" stop-color="#F3E1BC"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7FE7FF" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#7FE7FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="216" fill="url(#bg)"/>
+  <!-- cover -->
+  <path d="M130 330 Q512 260 894 330 L894 790 Q512 730 130 790 Z" fill="#2B0A14"/>
+  <!-- pages -->
+  <path d="M160 300 Q340 250 512 330 L512 770 Q340 700 160 750 Z" fill="url(#pageL)"/>
+  <path d="M864 300 Q684 250 512 330 L512 770 Q684 700 864 750 Z" fill="url(#pageR)"/>
+  <!-- glow + arcane circle -->
+  <circle cx="512" cy="430" r="260" fill="url(#glow)"/>
+  <g fill="none" stroke="#1E9BC2" stroke-width="14">
+    <circle cx="512" cy="430" r="150"/>
+    <circle cx="512" cy="430" r="118"/>
+  </g>
+  <!-- rune ticks around the ring -->
+  <g stroke="#1E9BC2" stroke-width="14" stroke-linecap="round">
+    <line x1="512" y1="296" x2="512" y2="328"/>
+    <line x1="512" y1="532" x2="512" y2="564"/>
+    <line x1="378" y1="430" x2="410" y2="430"/>
+    <line x1="614" y1="430" x2="646" y2="430"/>
+    <line x1="417" y1="335" x2="436" y2="354"/>
+    <line x1="588" y1="506" x2="607" y2="525"/>
+    <line x1="607" y1="335" x2="588" y2="354"/>
+    <line x1="436" y1="506" x2="417" y2="525"/>
+  </g>
+  <!-- four-point sparkle -->
+  <path d="M512 340 Q524 418 602 430 Q524 442 512 520 Q500 442 422 430 Q500 418 512 340 Z" fill="#E9FBFF" stroke="#1E9BC2" stroke-width="8"/>
+  <!-- ribbon -->
+  <path d="M600 740 L600 900 L636 868 L672 900 L672 730 Z" fill="#E7B53A"/>
+</svg>

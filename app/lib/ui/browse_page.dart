@@ -26,6 +26,7 @@ class BrowseTab extends StatelessWidget {
         final wide = MediaQuery.sizeOf(context).width >= wideBreakpoint;
         if (model.typeFilter == TypeFilter.maps) {
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _FilterBar(model: model, wide: wide),
               SizedBox(
@@ -47,6 +48,7 @@ class BrowseTab extends StatelessWidget {
         );
         final selected = model.selected;
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _FilterBar(model: model, wide: wide),
             SizedBox(
@@ -393,10 +395,24 @@ class _ResultTile extends StatelessWidget {
       if (g.lastUpdated != null) formatDate(g.lastUpdated),
       if (g.tags.isNotEmpty) g.tags.take(4).join(', '),
     ].join('  ·  ');
+    // Icons rather than ★/⇩ characters, which not every system font has.
+    Widget stat(IconData icon, String text) => Padding(
+      padding: const EdgeInsets.only(left: 10),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: muted?.color),
+          const SizedBox(width: 2),
+          Text(text, style: muted),
+        ],
+      ),
+    );
     final stats = [
-      if (g.rating != null) '★ ${g.rating!.toStringAsFixed(1)}',
-      if (g.downloads != null) '⇩ ${formatCount(g.downloads!)}',
-    ].join('   ');
+      if (g.rating != null)
+        stat(Icons.star_rounded, g.rating!.toStringAsFixed(1)),
+      if (g.downloads != null)
+        stat(Icons.download_rounded, formatCount(g.downloads!)),
+    ];
 
     final scheme = theme.colorScheme;
     final flags = g.flags;
@@ -439,7 +455,8 @@ class _ResultTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (stats.isNotEmpty) Text(stats, style: muted),
+          if (stats.isNotEmpty)
+            Row(mainAxisSize: MainAxisSize.min, children: stats),
           const SizedBox(height: 4),
           Row(
             mainAxisSize: MainAxisSize.min,

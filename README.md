@@ -1,8 +1,32 @@
+<p align="center">
+  <img src="assets/icon/app_icon.png" width="112" alt="Lich Repo Browser icon">
+</p>
+
 # Lich Repo Browser
 
-A standalone, cross-platform browser for Lich scripts, covering both the
-`;repository` server and Jinx repos: a Flutter app for
-Windows / macOS / Linux / Android / iOS.
+An unofficial, cross-platform browser for Lich scripts, covering both the `;repository`
+server and Jinx repos, for Windows, macOS and Linux (Android/iOS builds are set up but
+untested). Browse, search and download scripts without logging in to the game.
+
+![Browsing with a boolean search, with bigshot's details](docs/screenshot-browse.png)
+
+![Map image gallery](docs/screenshot-maps.png)
+
+## Install
+
+Download the latest build for your system from
+[Releases](https://github.com/Lillymara/lich-repo-browser/releases):
+
+- **Windows:** unzip `lich-repo-browser-windows-x64.zip` anywhere and run
+  `lich_repo_browser.exe`. SmartScreen may warn about an unsigned app: "More info" → "Run anyway".
+- **macOS:** unzip and move **Lich Repo Browser.app** to Applications. The first time,
+  right-click it → Open (it isn't signed by Apple).
+- **Linux:** extract `lich-repo-browser-linux-x64.tar.gz` somewhere permanent (for example
+  `~/.local/opt/lich-repo-browser`), then run `./install-desktop-entry.sh` in that folder to add it
+  to your applications menu with its icon. Or run `./lich_repo_browser` directly.
+
+The app finds a Lich install in the usual places (e.g. `~/Lich5`, `C:\Lich5`); otherwise use the
+folder button to choose it.
 
 ## Features
 
@@ -60,6 +84,14 @@ git push origin v1.0.0
 | Linux | `flutter build linux --release` | `build/linux/x64/release/bundle/` (needs `clang cmake ninja-build libgtk-3-dev`) |
 | Windows | `flutter build windows --release` | `build\windows\x64\runner\Release\` (needs Visual Studio with "Desktop development with C++") |
 | macOS | `flutter build macos --release` | `build/macos/Build/Products/Release/Lich Repo Browser.app` (needs Xcode) |
+
+App icons come from `assets/icon/app_icon.svg` (other design options are in
+`assets/icon-options/`). After changing it, re-render the PNG masters and run
+`dart run flutter_launcher_icons` in `app/`; the Windows `.ico` and Linux PNG are made separately
+(see the comment in `app/pubspec.yaml`).
+
+README screenshots are rendered off-screen at 1440×900 with live data:
+`SCREENSHOTS_OUT=../docs flutter test test/readme_screenshots_test.dart` (from `app/`).
 
 The builds are **unsigned**. Windows SmartScreen may warn ("More info" → "Run anyway"); on macOS,
 right-click the app → Open the first time. Signing needs a code-signing certificate (Windows) or

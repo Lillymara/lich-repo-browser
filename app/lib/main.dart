@@ -10,7 +10,6 @@ import 'updates_model.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  registerDebugCapture();
   final prefs = await SharedPreferences.getInstance();
   final model = CatalogModel(
     prefs: prefs,
@@ -19,6 +18,7 @@ Future<void> main() async {
   // Show the last-known catalogs immediately, then refresh in the background.
   await model.loadCached();
   model.refresh();
+  registerDebugCapture(model);
   final downloads = Downloads(prefs);
   runApp(
     RepoBrowserApp(

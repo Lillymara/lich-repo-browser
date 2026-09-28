@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16324A"/>
+      <stop offset="1" stop-color="#07121E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#5CFFB0" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="#2BD98A" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#2BD98A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F2F5F8"/>
+      <stop offset="0.5" stop-color="#9AA7B4"/>
+      <stop offset="1" stop-color="#5E6B78"/>
+    </linearGradient>
+    <linearGradient id="gemL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B8FFD9"/>
+      <stop offset="1" stop-color="#1FB673"/>
+    </linearGradient>
+    <linearGradient id="gemR" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3EE39A"/>
+      <stop offset="1" stop-color="#0A6B42"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="216" fill="url(#bg)"/>
+  <circle cx="512" cy="540" r="400" fill="url(#glow)"/>
+  <!-- chain -->
+  <g fill="none" stroke="url(#silver)" stroke-width="22">
+    <ellipse cx="512" cy="120" rx="34" ry="48"/>
+    <ellipse cx="512" cy="196" rx="24" ry="40" />
+  </g>
+  <!-- bail -->
+  <rect x="470" y="232" width="84" height="70" rx="18" fill="url(#silver)"/>
+  <!-- setting -->
+  <path d="M512 290 L752 470 L660 800 L364 800 L272 470 Z" fill="url(#silver)"/>
+  <!-- gem facets -->
+  <path d="M512 330 L710 478 L512 540 Z" fill="#8CFFC6"/>
+  <path d="M512 330 L314 478 L512 540 Z" fill="url(#gemL)"/>
+  <path d="M314 478 L512 540 L400 760 Z" fill="#26C47E"/>
+  <path d="M710 478 L512 540 L624 760 Z" fill="url(#gemR)"/>
+  <path d="M400 760 L512 540 L624 760 Z" fill="#14935A"/>
+  <path d="M470 380 L540 360 L500 440 Z" fill="#FFFFFF" opacity="0.7"/>
+</svg>
