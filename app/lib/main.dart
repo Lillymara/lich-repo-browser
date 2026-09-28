@@ -52,7 +52,7 @@ class RepoBrowserApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: 'Lich Repo Browser',
         debugShowCheckedModeBanner: false,
-        theme: buildTheme(themes.theme),
+        theme: themes.theme.build(),
         home: HomePage(
           catalog: model,
           updates: updates,

@@ -40,8 +40,9 @@ folder button to choose it.
 - Installed tab: which local files have updates, with per-file and bulk update
 - Rate Lich repository scripts (1–10), add your own Jinx repos, browse map images in a gallery
 - Catalogs cached for instant, offline-capable startup; phones save via the share sheet
-- Three themes (palette button): **Spellbook** (burgundy, gold and parchment, matching the icon;
-  the default), **Dark** and **Light**
+- Eleven themes (palette button): **Leather & Brass** (default), Midnight Grimoire, Muted
+  Spellbook, Vivid Spellbook, Phylactery, Frostbound, Ashen Bone, Ember and Parchment (light),
+  plus plain Dark and Light. Every themed palette is checked for WCAG AA text contrast.
 
 ## Layout
 
@@ -94,7 +95,7 @@ App icons come from `assets/icon/app_icon.svg` (other design options are in
 
 README screenshots are rendered off-screen at 1440×900 with live data:
 `SCREENSHOTS_OUT=../docs flutter test test/readme_screenshots_test.dart` (from `app/`;
-add `SCREENSHOTS_THEME=dark` or `light` for the other themes).
+add `SCREENSHOTS_THEME=<id>`, e.g. `midnight` or `light`, for other themes).
 
 The builds are **unsigned**. Windows SmartScreen may warn ("More info" → "Run anyway"); on macOS,
 right-click the app → Open the first time. Signing needs a code-signing certificate (Windows) or
