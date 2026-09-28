@@ -6,6 +6,7 @@ import '../catalog_model.dart';
 import '../downloads.dart';
 import 'browse_page.dart';
 import 'format.dart';
+import 'theme.dart';
 
 class DetailView extends StatefulWidget {
   const DetailView({
@@ -265,16 +266,23 @@ class _DetailViewState extends State<DetailView> {
           );
         }
         final body = snap.data!.text.trim();
+        final decor = AppDecor.of(context);
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            color:
+                decor.paper ??
+                Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
           ),
           child: SelectableText(
             body.isEmpty ? 'This file has no header comment.' : body,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 13,
+              color: decor.ink,
+            ),
           ),
         );
       },

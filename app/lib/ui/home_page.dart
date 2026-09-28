@@ -6,6 +6,7 @@ import '../updates_model.dart';
 import 'browse_page.dart';
 import 'installed_tab.dart';
 import 'sources_dialog.dart';
+import 'theme.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -13,11 +14,13 @@ class HomePage extends StatefulWidget {
     required this.catalog,
     required this.updates,
     required this.downloads,
+    required this.themes,
   });
 
   final CatalogModel catalog;
   final UpdatesModel updates;
   final Downloads downloads;
+  final ThemeController themes;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -55,7 +58,15 @@ class _HomePageState extends State<HomePage> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Lich Repo Browser'),
+          flexibleSpace: switch (AppDecor.of(context).appBarGradient) {
+            // Needs a size: an empty DecoratedBox would be zero-sized here.
+            final g? => SizedBox.expand(
+              child: DecoratedBox(decoration: BoxDecoration(gradient: g)),
+            ),
+            null => null,
+          },
           actions: [
+            ThemeMenuButton(controller: widget.themes),
             IconButton(
               tooltip: 'Sources',
               icon: const Icon(Icons.dns_outlined),

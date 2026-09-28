@@ -6,6 +6,7 @@ import 'catalog_model.dart';
 import 'debug_capture.dart';
 import 'downloads.dart';
 import 'ui/home_page.dart';
+import 'ui/theme.dart';
 import 'updates_model.dart';
 
 Future<void> main() async {
@@ -25,36 +26,40 @@ Future<void> main() async {
       model: model,
       downloads: downloads,
       updates: UpdatesModel(model, downloads),
+      themes: ThemeController(prefs),
     ),
   );
 }
 
 class RepoBrowserApp extends StatelessWidget {
-  const RepoBrowserApp({
+  RepoBrowserApp({
     super.key,
     required this.model,
     required this.downloads,
     required this.updates,
-  });
+    ThemeController? themes,
+  }) : themes = themes ?? ThemeController(null);
 
   final CatalogModel model;
   final Downloads downloads;
   final UpdatesModel updates;
+  final ThemeController themes;
 
   @override
   Widget build(BuildContext context) {
-    ThemeData theme(Brightness b) => ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF4A6FA5),
-        brightness: b,
+    return ListenableBuilder(
+      listenable: themes,
+      builder: (context, _) => MaterialApp(
+        title: 'Lich Repo Browser',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(themes.theme),
+        home: HomePage(
+          catalog: model,
+          updates: updates,
+          downloads: downloads,
+          themes: themes,
+        ),
       ),
-    );
-    return MaterialApp(
-      title: 'Lich Repo Browser',
-      debugShowCheckedModeBanner: false,
-      theme: theme(Brightness.light),
-      darkTheme: theme(Brightness.dark),
-      home: HomePage(catalog: model, updates: updates, downloads: downloads),
     );
   }
 }

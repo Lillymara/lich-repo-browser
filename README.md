@@ -40,6 +40,8 @@ folder button to choose it.
 - Installed tab: which local files have updates, with per-file and bulk update
 - Rate Lich repository scripts (1–10), add your own Jinx repos, browse map images in a gallery
 - Catalogs cached for instant, offline-capable startup; phones save via the share sheet
+- Three themes (palette button): **Spellbook** (burgundy, gold and parchment, matching the icon;
+  the default), **Dark** and **Light**
 
 ## Layout
 
@@ -91,7 +93,8 @@ App icons come from `assets/icon/app_icon.svg` (other design options are in
 (see the comment in `app/pubspec.yaml`).
 
 README screenshots are rendered off-screen at 1440×900 with live data:
-`SCREENSHOTS_OUT=../docs flutter test test/readme_screenshots_test.dart` (from `app/`).
+`SCREENSHOTS_OUT=../docs flutter test test/readme_screenshots_test.dart` (from `app/`;
+add `SCREENSHOTS_THEME=dark` or `light` for the other themes).
 
 The builds are **unsigned**. Windows SmartScreen may warn ("More info" → "Run anyway"); on macOS,
 right-click the app → Open the first time. Signing needs a code-signing certificate (Windows) or

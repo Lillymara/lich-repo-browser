@@ -3,6 +3,8 @@
 //
 //   SCREENSHOTS_OUT=../docs flutter test test/readme_screenshots_test.dart
 //
+// SCREENSHOTS_THEME=light|dark|spellbook picks a theme (default: the app's).
+//
 // Uses no Lich folder and no saved settings, so nothing personal appears.
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -14,9 +16,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lich_repo_browser/catalog_model.dart';
 import 'package:lich_repo_browser/downloads.dart';
 import 'package:lich_repo_browser/main.dart';
+import 'package:lich_repo_browser/ui/theme.dart';
 import 'package:lich_repo_browser/updates_model.dart';
 
 final _out = Platform.environment['SCREENSHOTS_OUT'];
+
+/// Optional theme name (spellbook, dark, light); defaults to the app default.
+final _theme = AppTheme.values
+    .where((t) => t.name == Platform.environment['SCREENSHOTS_THEME'])
+    .firstOrNull;
 
 /// Real fonts instead of the test font. File reads must happen inside
 /// runAsync; the loaders then take already-read bytes.
@@ -53,9 +61,7 @@ void main() {
 
     tester.view.physicalSize = const Size(1440, 900);
     tester.view.devicePixelRatio = 1;
-    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.view.reset);
-    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
     final model = CatalogModel();
     final downloads = Downloads(null, autodetect: false);
@@ -67,6 +73,7 @@ void main() {
           model: model,
           downloads: downloads,
           updates: UpdatesModel(model, downloads),
+          themes: ThemeController(null)..set(_theme ?? AppTheme.spellbook),
         ),
       ),
     );
