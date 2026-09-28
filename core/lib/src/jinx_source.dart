@@ -7,8 +7,12 @@ import 'source.dart';
 
 /// A Jinx repository: a static HTTPS site with `/manifest.json`.
 class JinxSource implements RepoSource {
-  JinxSource({required this.name, required this.baseUrl, HttpClient? client})
-      : _client = client ?? HttpClient();
+  JinxSource({
+    required this.name,
+    required this.baseUrl,
+    this.game,
+    HttpClient? client,
+  }) : _client = client ?? HttpClient();
 
   /// Default repos from jinx.lic (deprecated `core` and `gtk3` omitted).
   static List<JinxSource> defaults() => [
@@ -19,15 +23,24 @@ class JinxSource implements RepoSource {
             name: 'mirror', baseUrl: 'https://ffnglichrepoarchive.netlify.app'),
         JinxSource(
             name: 'mapdb-backup-gs',
-            baseUrl: 'https://elanthia-online.github.io/mapdb-backup-gs'),
+            baseUrl: 'https://elanthia-online.github.io/mapdb-backup-gs',
+            game: 'gs'),
         JinxSource(
             name: 'mapdb-backup-dr',
-            baseUrl: 'https://elanthia-online.github.io/mapdb-backup-dr'),
+            baseUrl: 'https://elanthia-online.github.io/mapdb-backup-dr',
+            game: 'dr'),
       ];
 
   final String name;
   final String baseUrl;
+
+  /// Game every entry belongs to, when the whole repo is game-specific.
+  /// Jinx manifests don't carry a game themselves.
+  final String? game;
   final HttpClient _client;
+
+  /// Absolute URL for a manifest path such as [CatalogEntry.path].
+  Uri urlFor(String path) => Uri.parse('$baseUrl$path');
 
   @override
   String get id => 'jinx:$name';
@@ -37,7 +50,7 @@ class JinxSource implements RepoSource {
 
   @override
   Future<List<CatalogEntry>> fetchCatalog() async =>
-      parseManifest(id, utf8.decode(await _get('/manifest.json')));
+      parseManifest(id, utf8.decode(await _get('/manifest.json')), game: game);
 
   @override
   Future<EntryDetails> fetchDetails(CatalogEntry entry) async {
@@ -55,7 +68,7 @@ class JinxSource implements RepoSource {
   }
 
   Future<Uint8List> _get(String path) async {
-    final req = await _client.getUrl(Uri.parse('$baseUrl$path'));
+    final req = await _client.getUrl(urlFor(path));
     final res = await req.close();
     final bytes = await res.fold<BytesBuilder>(
         BytesBuilder(), (b, chunk) => b..add(chunk));
@@ -66,7 +79,8 @@ class JinxSource implements RepoSource {
   }
 
   /// Parses a Jinx `manifest.json` into entries.
-  static List<CatalogEntry> parseManifest(String sourceId, String json) {
+  static List<CatalogEntry> parseManifest(String sourceId, String json,
+      {String? game}) {
     final decoded = jsonDecode(json);
     final available = decoded is Map ? decoded['available'] : null;
     if (available is! List) {
@@ -79,6 +93,7 @@ class JinxSource implements RepoSource {
           name:
               Uri.decodeComponent((a['file'] as String? ?? '').split('/').last),
           type: a['type'] as String? ?? 'script',
+          game: game,
           author: a['author'] as String?,
           version: a['version']?.toString(),
           tags: [for (final t in (a['tags'] as List? ?? const [])) '$t'],
